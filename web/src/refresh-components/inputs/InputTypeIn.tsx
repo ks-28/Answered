@@ -1,53 +1,68 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { useBoundingBox } from "@/hooks/useBoundingBox";
+import React, { useCallback, useRef } from "react";
+import { cn, noProp } from "@/lib/utils";
 import SvgX from "@/icons/x";
 import IconButton from "@/refresh-components/buttons/IconButton";
 import SvgSearch from "@/icons/search";
 
-const divClasses = (active?: boolean, hovered?: boolean) =>
-  ({
-    defaulted: [
-      "border",
-      hovered && "border-border-02",
-      active && "border-border-05",
-    ],
-    internal: [],
-    disabled: ["bg-background-neutral-03"],
-  }) as const;
+const divClasses = {
+  main: [
+    "border",
+    "hover:border-border-02",
+    "active:!border-border-05",
+    "focus-within-nonactive:border-border-05 focus-within-nonactive:focus-shadow",
+  ],
+  internal: [],
+  error: ["border", "border-status-error-05"],
+  disabled: [
+    "bg-background-neutral-03",
+    "border",
+    "border-border-01",
+    "cursor-not-allowed",
+  ],
+} as const;
 
-const inputClasses = (active?: boolean) =>
-  ({
-    defaulted: [
-      "text-text-04 placeholder:!font-secondary-body placeholder:text-text-02",
-    ],
-    internal: [],
-    disabled: ["text-text-02"],
-  }) as const;
+const inputClasses = {
+  main: [
+    "text-text-04 placeholder:!font-secondary-body placeholder:text-text-02",
+  ],
+  internal: [],
+  error: [],
+  disabled: ["text-text-02"],
+} as const;
 
-interface InputTypeInProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputTypeInProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
   // Input states:
-  active?: boolean;
   internal?: boolean;
+  error?: boolean;
   disabled?: boolean;
 
   // Stylings:
   leftSearchIcon?: boolean;
 
-  placeholder: string;
+  // Right section of the input, e.g. password toggle icon
+  rightSection?: React.ReactNode;
+
+  // Controls whether the clear (X) button is shown when there is a value
+  showClearButton?: boolean;
+
+  // Optional callback invoked when the clear icon is clicked for Formik compatibility
+  onClear?: () => void;
 }
 
 function InputTypeInInner(
   {
-    active,
     internal,
+    error,
     disabled,
 
     leftSearchIcon,
+    rightSection,
+    showClearButton = true,
+    onClear,
 
-    placeholder,
     className,
     value,
     onChange,
@@ -55,27 +70,33 @@ function InputTypeInInner(
   }: InputTypeInProps,
   ref: React.ForwardedRef<HTMLInputElement>
 ) {
-  const { ref: boundingBoxRef, inside: hovered } = useBoundingBox();
-  const [localActive, setLocalActive] = useState(active);
-  const localRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLInputElement | null>(null);
+  const setInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      localInputRef.current = node;
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref) {
+        (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
+      }
+    },
+    [ref]
+  );
 
-  // Use forwarded ref if provided, otherwise use local ref
-  const inputRef = ref || localRef;
-
-  const state = internal ? "internal" : disabled ? "disabled" : "defaulted";
-
-  useEffect(() => {
-    // if disabled, set cursor to "not-allowed"
-    if (disabled && hovered) {
-      document.body.style.cursor = "not-allowed";
-    } else if (!disabled && hovered) {
-      document.body.style.cursor = "text";
-    } else {
-      document.body.style.cursor = "default";
-    }
-  }, [hovered]);
+  const variant = internal
+    ? "internal"
+    : error
+      ? "error"
+      : disabled
+        ? "disabled"
+        : "main";
 
   function handleClear() {
+    if (onClear) {
+      onClear();
+      return;
+    }
+
     onChange?.({
       target: { value: "" },
       currentTarget: { value: "" },
@@ -87,52 +108,45 @@ function InputTypeInInner(
 
   return (
     <div
-      ref={boundingBoxRef}
       className={cn(
         "flex flex-row items-center justify-between w-full h-fit p-1.5 rounded-08 bg-background-neutral-00 relative",
-        divClasses(localActive, hovered)[state],
+        divClasses[variant],
         className
       )}
       onClick={() => {
-        if (
-          hovered &&
-          inputRef &&
-          typeof inputRef === "object" &&
-          inputRef.current
-        ) {
-          inputRef.current.focus();
-        }
+        localInputRef.current?.focus();
       }}
     >
       {leftSearchIcon && (
         <div className="pr-2">
-          <SvgSearch className="w-[1rem] h-[1rem] stroke-text-02" />
+          <div className="pl-1">
+            <SvgSearch className="w-[1rem] h-[1rem] stroke-text-02" />
+          </div>
         </div>
       )}
 
       <input
-        ref={inputRef}
+        ref={setInputRef}
         type="text"
-        placeholder={placeholder}
         disabled={disabled}
         value={value}
         onChange={onChange}
-        onFocus={() => setLocalActive(true)}
-        onBlur={() => setLocalActive(false)}
         className={cn(
           "w-full h-[1.5rem] bg-transparent p-0.5 focus:outline-none",
-          inputClasses(localActive)[state]
+          inputClasses[variant]
         )}
         {...props}
       />
-      {value && (
+      {showClearButton && value && (
         <IconButton
           icon={SvgX}
           disabled={disabled}
-          onClick={handleClear}
+          onClick={noProp(handleClear)}
+          type="button"
           internal
         />
       )}
+      {rightSection}
     </div>
   );
 }

@@ -31,6 +31,11 @@ export default defineConfig({
   ],
   // Only run Playwright tests from tests/e2e directory (ignore Jest tests in src/)
   testMatch: /.*\/tests\/e2e\/.*\.spec\.ts/,
+  outputDir: "test-results",
+  use: {
+    // Capture trace on failure
+    trace: "retain-on-failure",
+  },
   projects: [
     {
       name: "admin",
@@ -39,6 +44,7 @@ export default defineConfig({
         viewport: { width: 1280, height: 720 },
         storageState: "admin_auth.json",
       },
+      grepInvert: /@exclusive/,
     },
     {
       name: "no-auth",
@@ -46,6 +52,19 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 720 },
       },
+      grepInvert: /@exclusive/,
+    },
+    {
+      // this suite runs independently and serially + slower
+      // we should be cautious about bloating this suite
+      name: "exclusive",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 720 },
+        storageState: "admin_auth.json",
+      },
+      grep: /@exclusive/,
+      workers: 1,
     },
   ],
 });

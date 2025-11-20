@@ -1,5 +1,6 @@
 "use client";
 
+import { JSX } from "react";
 import Image from "next/image";
 import { StaticImageData } from "next/image";
 
@@ -2876,7 +2877,7 @@ export const HighspotIcon = createLogoIcon(highspotIcon);
 export const HubSpotIcon = createLogoIcon(hubSpotIcon);
 export const JiraIcon = createLogoIcon(jiraSVG);
 export const KimiIcon = createLogoIcon(kimiIcon);
-export const LinearIcon = createLogoIcon(linearIcon, { monochromatic: true });
+export const LinearIcon = createLogoIcon(linearIcon);
 export const LiteLLMIcon = createLogoIcon(litellmIcon);
 export const LoopioIcon = createLogoIcon(loopioIcon, { monochromatic: true });
 export const MediaWikiIcon = createLogoIcon(mediawikiIcon);

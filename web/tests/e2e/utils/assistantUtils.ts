@@ -18,8 +18,8 @@ export async function createAssistant(page: Page, params: AssistantParams) {
   }
 
   // Open Assistants modal/list
-  await page.getByRole("button", { name: "Explore Assistants" }).click();
-  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await page.getByTestId("AppSidebar/more-agents").click();
+  await page.getByTestId("AgentsPage/new-agent-button").click();
 
   // Fill required fields
   await page.getByTestId("name").fill(name);
@@ -85,13 +85,12 @@ export async function ensureImageGenerationEnabled(page: Page): Promise<void> {
 
   // Find the Image Generation tool toggle
   // The tool display name is "Image Generation" based on the description in the code
-  const imageGenSection = page
-    .locator("div")
-    .filter({ hasText: /^Image Generation/ })
+  // Use a more specific selector to avoid matching parent containers
+  const switchElement = page
+    .locator('div:has-text("Image Generation")')
+    .filter({ hasText: "Image Generation" })
+    .locator('button[role="switch"]')
     .first();
-
-  // Find the switch within this section
-  const switchElement = imageGenSection.locator('button[role="switch"]');
 
   // Check if it's already enabled
   const isEnabled = await switchElement.getAttribute("data-state");

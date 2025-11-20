@@ -10,10 +10,10 @@ from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
 from onyx.chat.models import PromptConfig
-from onyx.configs.app_configs import AZURE_DALLE_API_BASE
-from onyx.configs.app_configs import AZURE_DALLE_API_KEY
-from onyx.configs.app_configs import AZURE_DALLE_API_VERSION
-from onyx.configs.app_configs import AZURE_DALLE_DEPLOYMENT_NAME
+from onyx.configs.app_configs import AZURE_IMAGE_API_BASE
+from onyx.configs.app_configs import AZURE_IMAGE_API_KEY
+from onyx.configs.app_configs import AZURE_IMAGE_API_VERSION
+from onyx.configs.app_configs import AZURE_IMAGE_DEPLOYMENT_NAME
 from onyx.configs.app_configs import IMAGE_MODEL_NAME
 from onyx.configs.constants import TMP_DRALPHA_PERSONA_NAME
 from onyx.configs.model_configs import GEN_AI_TEMPERATURE
@@ -92,7 +92,7 @@ class WebSearchToolConfig(BaseModel):
 
 
 class ImageGenerationToolConfig(BaseModel):
-    additional_headers: dict[str, str] | None = None
+    pass
 
 
 class CustomToolConfig(BaseModel):
@@ -114,14 +114,15 @@ def _get_image_generation_config(llm: LLM, db_session: Session) -> LLMConfig:
             max_input_tokens=llm.config.max_input_tokens,
         )
 
-    if llm.config.model_provider == "azure" and AZURE_DALLE_API_KEY is not None:
+    if llm.config.model_provider == "azure" and AZURE_IMAGE_API_KEY is not None:
         return LLMConfig(
             model_provider="azure",
-            model_name=f"azure/{AZURE_DALLE_DEPLOYMENT_NAME}",
+            model_name=f"azure/{AZURE_IMAGE_DEPLOYMENT_NAME}",
             temperature=GEN_AI_TEMPERATURE,
-            api_key=AZURE_DALLE_API_KEY,
-            api_base=AZURE_DALLE_API_BASE,
-            api_version=AZURE_DALLE_API_VERSION,
+            api_key=AZURE_IMAGE_API_KEY,
+            api_base=AZURE_IMAGE_API_BASE,
+            api_version=AZURE_IMAGE_API_VERSION,
+            deployment_name=AZURE_IMAGE_DEPLOYMENT_NAME,
             max_input_tokens=llm.config.max_input_tokens,
         )
 
@@ -271,7 +272,6 @@ def construct_tools(
                         api_key=cast(str, img_generation_llm_config.api_key),
                         api_base=img_generation_llm_config.api_base,
                         api_version=img_generation_llm_config.api_version,
-                        additional_headers=image_generation_tool_config.additional_headers,
                         model=img_generation_llm_config.model_name,
                         tool_id=db_tool_model.id,
                     )

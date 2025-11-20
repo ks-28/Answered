@@ -6,7 +6,7 @@ import SvgMoreHorizontal from "@/icons/more-horizontal";
 import { useChatContext } from "@/refresh-components/contexts/ChatContext";
 import { deleteChatSession, renameChatSession } from "@/app/chat/services/lib";
 import { ChatSession } from "@/app/chat/interfaces";
-import ConfirmationModal from "@/refresh-components/modals/ConfirmationModal";
+import ConfirmationModalLayout from "@/refresh-components/layouts/ConfirmationModalLayout";
 import SvgTrash from "@/icons/trash";
 import SvgShare from "@/icons/share";
 import SvgEdit from "@/icons/edit";
@@ -18,8 +18,7 @@ import {
   PopoverMenu,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useAppParams, useAppRouter } from "@/hooks/appNavigation";
-import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
+import { useAppRouter } from "@/hooks/appNavigation";
 import {
   Project,
   removeChatSessionFromProject,
@@ -37,17 +36,14 @@ import MenuButton from "@/refresh-components/buttons/MenuButton";
 import { PopoverAnchor } from "@radix-ui/react-popover";
 import InputTypeIn from "@/refresh-components/inputs/InputTypeIn";
 import { usePopup } from "@/components/admin/connectors/Popup";
-import {
-  DRAG_TYPES,
-  DEFAULT_PERSONA_ID,
-  LOCAL_STORAGE_KEYS,
-} from "@/sections/sidebar/constants";
+import { DRAG_TYPES, LOCAL_STORAGE_KEYS } from "@/sections/sidebar/constants";
 import {
   shouldShowMoveModal,
   showErrorNotification,
   handleMoveOperation,
 } from "@/sections/sidebar/sidebarUtils";
 import ButtonRenaming from "@/sections/sidebar/ButtonRenaming";
+import { useAppFocus } from "@/lib/hooks";
 
 // (no local constants; use shared constants/imports)
 
@@ -112,7 +108,14 @@ function ChatButtonInner({
   draggable = false,
 }: ChatButtonProps) {
   const route = useAppRouter();
-  const params = useAppParams();
+  const activeSidebarTab = useAppFocus();
+  const active = useMemo(
+    () =>
+      typeof activeSidebarTab === "object" &&
+      activeSidebarTab.type === "chat" &&
+      activeSidebarTab.id === chatSession.id,
+    [activeSidebarTab, chatSession.id]
+  );
   const [mounted, setMounted] = useState(false);
   const [displayName, setDisplayName] = useState(
     chatSession.name || UNNAMED_CHAT
@@ -280,7 +283,7 @@ function ChatButtonInner({
         await refreshCurrentProjectDetails();
 
         // Only route if the deleted chat is the currently opened chat session
-        if (params(SEARCH_PARAM_NAMES.CHAT_ID) == chatSession.id) {
+        if (active) {
           route({ projectId: project.id });
         }
       }
@@ -348,7 +351,7 @@ function ChatButtonInner({
               !popoverOpen && "hidden",
               !renaming && "group-hover/SidebarTab:flex"
             )}
-            active={popoverOpen}
+            transient={popoverOpen}
             internal
           />
         </div>
@@ -369,7 +372,7 @@ function ChatButtonInner({
       <PopoverAnchor>
         <SidebarTab
           onClick={() => route({ chatSessionId: chatSession.id })}
-          active={params(SEARCH_PARAM_NAMES.CHAT_ID) === chatSession.id}
+          active={active}
           rightChildren={rightMenu}
           focused={renaming}
         >
@@ -392,7 +395,7 @@ function ChatButtonInner({
       {popup}
 
       {deleteConfirmationModalOpen && (
-        <ConfirmationModal
+        <ConfirmationModalLayout
           title="Delete Chat"
           icon={SvgTrash}
           onClose={() => setDeleteConfirmationModalOpen(false)}
@@ -410,7 +413,7 @@ function ChatButtonInner({
         >
           Are you sure you want to delete this chat? This action cannot be
           undone.
-        </ConfirmationModal>
+        </ConfirmationModalLayout>
       )}
 
       {showMoveCustomAgentModal && (

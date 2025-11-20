@@ -62,7 +62,7 @@ class FakeLLM(LLM):
     def log_model_configs(self) -> None:
         """Fake log_model_configs method."""
 
-    def _invoke_implementation(
+    def _invoke_implementation_langchain(
         self,
         prompt: Any,
         tools: Any = None,
@@ -75,6 +75,42 @@ class FakeLLM(LLM):
         from langchain_core.messages import AIMessage
 
         return AIMessage(content="fake response")
+
+    def _invoke_implementation(
+        self,
+        prompt: Any,
+        tools: Any = None,
+        tool_choice: Any = None,
+        structured_response_format: Any = None,
+        timeout_override: Any = None,
+        max_tokens: Any = None,
+    ) -> Any:
+        """Fake _invoke_implementation method."""
+        from onyx.llm.model_response import Choice
+        from onyx.llm.model_response import Message
+        from onyx.llm.model_response import ModelResponse as OnyxModelResponse
+
+        return OnyxModelResponse(
+            id="fake-id",
+            created="0",
+            choice=Choice(
+                finish_reason="stop",
+                index=0,
+                message=Message(content="fake response", role="assistant"),
+            ),
+        )
+
+    def _stream_implementation_langchain(
+        self,
+        prompt: Any,
+        tools: Any = None,
+        tool_choice: Any = None,
+        structured_response_format: Any = None,
+        timeout_override: Any = None,
+        max_tokens: Any = None,
+    ) -> Any:
+        """Fake _stream_implementation method that yields no messages."""
+        return iter([])
 
     def _stream_implementation(
         self,
@@ -262,6 +298,7 @@ class FakeModel(StreamableFakeModel):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._output_schema: AgentOutputSchemaBase | None = None
+        self.input_history: list[str | list] = []
 
     async def get_response(
         self,
@@ -308,6 +345,8 @@ class FakeModel(StreamableFakeModel):
         prompt: Any = None,
     ) -> AsyncIterator[object]:
         """Override streaming to handle structured output."""
+        # Update this history for testing purposes
+        self.input_history.append(input)
         # Store output_schema for streaming
         self._output_schema = output_schema
 
@@ -623,7 +662,15 @@ def chat_turn_dependencies(
     fake_redis_client: FakeRedis,
 ) -> ChatTurnDependencies:
     """Fixture providing a complete ChatTurnDependencies object with fake implementations."""
+    from onyx.chat.models import PromptConfig
+
     emitter = get_default_emitter()
+    prompt_config = PromptConfig(
+        default_behavior_system_prompt="You are a helpful assistant.",
+        reminder="Answer the user's question.",
+        custom_instructions="",
+        datetime_aware=False,
+    )
     return ChatTurnDependencies(
         llm_model=fake_model,
         model_settings=ModelSettings(temperature=0.0, include_usage=True),
@@ -632,6 +679,8 @@ def chat_turn_dependencies(
         tools=fake_tools,
         redis_client=fake_redis_client,  # type: ignore[arg-type]
         emitter=emitter,
+        user_or_none=None,
+        prompt_config=prompt_config,
     )
 
 
